@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main_layout"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:gravity="center_horizontal" >
+
+    <TableLayout
+        android:id="@+id/play_grid"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_marginTop="5dp" >
+
+        <TableRow android:gravity="center_horizontal">
+            <Button android:id="@+id/one"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="1" />
+            <Button android:id="@+id/two"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="2" />
+            <Button android:id="@+id/three"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="3" />
+        </TableRow>
+
+        <TableRow android:gravity="center_horizontal">
+            <Button android:id="@+id/four"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="4" />
+            <Button android:id="@+id/five"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="5" />
+            <Button android:id="@+id/six"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="6" />
+        </TableRow>
+
+        <TableRow android:gravity="center_horizontal">
+            <Button android:id="@+id/seven"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="7" />
+            <Button android:id="@+id/eight"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="8" />
+            <Button android:id="@+id/nine"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:textSize="70dp"
+                android:text="9" />
+        </TableRow>
+    </TableLayout>
+
+    <TextView 
+        android:id="@+id/information"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:textSize="20dp"
+        android:text="info"
+        android:layout_marginTop="20dp" />
+
+</LinearLayout>
