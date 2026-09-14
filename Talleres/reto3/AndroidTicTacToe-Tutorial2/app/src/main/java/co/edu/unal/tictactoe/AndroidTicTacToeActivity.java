@@ -20,6 +20,16 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
     // Text view for game state status
     private TextView mInfoTextView;
 
+    // Score counters
+    private int mHumanWins = 0;
+    private int mAndroidWins = 0;
+    private int mTies = 0;
+
+    // Score TextViews
+    private TextView mHumanScoreTextView;
+    private TextView mAndroidScoreTextView;
+    private TextView mTieScoreTextView;
+
     // Game state check flag
     private boolean mGameOver = false;
 
@@ -40,10 +50,20 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
         mBoardButtons[8] = (Button) findViewById(R.id.nine);
 
         mInfoTextView = (TextView) findViewById(R.id.information);
+        mHumanScoreTextView = (TextView) findViewById(R.id.human_score);
+        mTieScoreTextView = (TextView) findViewById(R.id.ties_score);
+        mAndroidScoreTextView = (TextView) findViewById(R.id.android_score);
 
         mGame = new TicTacToeGame();
 
+        displayScores();
         startNewGame();
+    }
+
+    private void displayScores() {
+        mHumanScoreTextView.setText(getString(R.string.human_score, mHumanWins));
+        mTieScoreTextView.setText(getString(R.string.ties_score, mTies));
+        mAndroidScoreTextView.setText(getString(R.string.android_score, mAndroidWins));
     }
 
     private void startNewGame() {
@@ -97,12 +117,18 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
                     mInfoTextView.setText(R.string.turn_human);
                 } else if (winner == 1) {
                     mInfoTextView.setText(R.string.result_tie);
+                    mTies++;
+                    displayScores();
                     mGameOver = true;
                 } else if (winner == 2) {
                     mInfoTextView.setText(R.string.result_human_wins);
+                    mHumanWins++;
+                    displayScores();
                     mGameOver = true;
                 } else {
                     mInfoTextView.setText(R.string.result_computer_wins);
+                    mAndroidWins++;
+                    displayScores();
                     mGameOver = true;
                 }
             }
@@ -112,13 +138,23 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
-        menu.add("New Game");
+        menu.add(Menu.NONE, 1, Menu.NONE, "New Game");
+        menu.add(Menu.NONE, 2, Menu.NONE, R.string.reset_scores);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        startNewGame();
-        return true;
+        if (item.getItemId() == 1) {
+            startNewGame();
+            return true;
+        } else if (item.getItemId() == 2) {
+            mHumanWins = 0;
+            mAndroidWins = 0;
+            mTies = 0;
+            displayScores();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

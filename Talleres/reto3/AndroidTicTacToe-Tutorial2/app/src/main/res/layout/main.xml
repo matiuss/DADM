@@ -77,4 +77,48 @@
         android:text="info"
         android:layout_marginTop="20dp" />
 
+    <LinearLayout
+        android:id="@+id/score_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/human_score"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#00C800"
+            android:text="Human: 0" />
+
+        <TextView
+            android:id="@+id/ties_score"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#666666"
+            android:text="Ties: 0" />
+
+        <TextView
+            android:id="@+id/android_score"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#C80000"
+            android:text="Android: 0" />
+    </LinearLayout>
+
 </LinearLayout>
