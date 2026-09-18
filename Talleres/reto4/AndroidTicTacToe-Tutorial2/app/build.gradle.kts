@@ -9,7 +9,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "co.edu.unal.tictactoe"
+        applicationId = "co.edu.unal.tictactoe.reto4"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
