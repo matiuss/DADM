@@ -56,6 +56,8 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
     private TextView mHostScoreTextView;
     private TextView mGuestScoreTextView;
     private TextView mTieScoreTextView;
+    
+    private List<Integer> lastBoard = null;
 
     private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
         public boolean onTouch(View v, MotionEvent event) {
@@ -63,7 +65,7 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
             
             // Cannot play if guest hasn't joined
             if (guestId == null || guestId.isEmpty()) {
-                Toast.makeText(AndroidTicTacToeActivity.this, "Waiting for another player...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(AndroidTicTacToeActivity.this, "Waiting for another player to join...", Toast.LENGTH_SHORT).show();
                 return false;
             }
 
@@ -72,6 +74,8 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
             int pos = row * 3 + col;
 
             if (mGame.getBoardOccupant(pos) == TicTacToeGame.OPEN_SPOT) {
+                if (mHumanMediaPlayer != null) mHumanMediaPlayer.start();
+
                 // Simulate move locally to check for winner
                 mGame.setMove(isHost ? TicTacToeGame.HUMAN_PLAYER : TicTacToeGame.COMPUTER_PLAYER, pos);
                 int winner = mGame.checkForWinner();
@@ -156,6 +160,9 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
 
                 // Reconstruct board
                 mGame.clearBoard();
+                List<Integer> currentBoard = new ArrayList<>();
+                for(int i=0; i<9; i++) currentBoard.add(0);
+
                 Object boardObj = snapshot.child("board").getValue();
                 if (boardObj instanceof List) {
                     List<?> firebaseBoard = (List<?>) boardObj;
@@ -163,6 +170,7 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
                         Object valObj = firebaseBoard.get(i);
                         if (valObj instanceof Number) {
                             int val = ((Number) valObj).intValue();
+                            currentBoard.set(i, val);
                             if (val == 1) {
                                 mGame.setMove(TicTacToeGame.HUMAN_PLAYER, i); // X
                             } else if (val == 2) {
@@ -171,6 +179,18 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
                         }
                     }
                 }
+                
+                if (lastBoard != null) {
+                    int myPiece = isHost ? 1 : 2;
+                    for (int i = 0; i < 9; i++) {
+                        if (lastBoard.get(i) == 0 && currentBoard.get(i) != 0) {
+                            if (currentBoard.get(i) != myPiece) {
+                                if (mComputerMediaPlayer != null) mComputerMediaPlayer.start();
+                            }
+                        }
+                    }
+                }
+                lastBoard = currentBoard;
                 
                 // Read scores
                 Integer hScore = snapshot.child("hostScore").getValue(Integer.class);
