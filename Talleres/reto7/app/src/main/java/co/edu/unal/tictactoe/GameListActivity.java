@@ -96,6 +96,7 @@ public class GameListActivity extends AppCompatActivity {
 
         gamesRef.child(gameId).setValue(gameData).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
+                gamesRef.child(gameId).onDisconnect().removeValue();
                 startGameActivity(gameId, true);
             } else {
                 Toast.makeText(this, "Failed to create game", Toast.LENGTH_SHORT).show();
@@ -104,28 +105,41 @@ public class GameListActivity extends AppCompatActivity {
     }
 
     private void joinGame(String gameId) {
-        gamesRef.child(gameId).get().addOnSuccessListener(snapshot -> {
-            if (snapshot.exists()) {
-                String hostId = snapshot.child("hostId").getValue(String.class);
-                String guestId = snapshot.child("guestId").getValue(String.class);
-                String status = snapshot.child("status").getValue(String.class);
+        gamesRef.child(gameId).runTransaction(new com.google.firebase.database.Transaction.Handler() {
+            @NonNull
+            @Override
+            public com.google.firebase.database.Transaction.Result doTransaction(@NonNull com.google.firebase.database.MutableData currentData) {
+                if (currentData.getValue() == null) {
+                    return com.google.firebase.database.Transaction.abort();
+                }
+
+                String status = currentData.child("status").getValue(String.class);
+                String hostId = currentData.child("hostId").getValue(String.class);
+                String guestId = currentData.child("guestId").getValue(String.class);
 
                 if (playerId.equals(hostId)) {
-                    // Rejoining own game
-                    gamesRef.child(gameId).child("hostName").setValue(getPlayerName());
-                    startGameActivity(gameId, true);
+                    currentData.child("hostName").setValue(getPlayerName());
+                    return com.google.firebase.database.Transaction.success(currentData);
                 } else if (guestId != null && playerId.equals(guestId)) {
-                    // Rejoining as guest
-                    gamesRef.child(gameId).child("guestName").setValue(getPlayerName());
-                    startGameActivity(gameId, false);
+                    currentData.child("guestName").setValue(getPlayerName());
+                    return com.google.firebase.database.Transaction.success(currentData);
                 } else if ("waiting".equals(status)) {
-                    // Joining new game
-                    gamesRef.child(gameId).child("guestId").setValue(playerId);
-                    gamesRef.child(gameId).child("guestName").setValue(getPlayerName());
-                    gamesRef.child(gameId).child("status").setValue("playing");
-                    startGameActivity(gameId, false);
+                    currentData.child("guestId").setValue(playerId);
+                    currentData.child("guestName").setValue(getPlayerName());
+                    currentData.child("status").setValue("playing");
+                    return com.google.firebase.database.Transaction.success(currentData);
                 } else {
-                    Toast.makeText(this, "Game is already full or playing", Toast.LENGTH_SHORT).show();
+                    return com.google.firebase.database.Transaction.abort();
+                }
+            }
+
+            @Override
+            public void onComplete(DatabaseError error, boolean committed, DataSnapshot currentData) {
+                if (committed && currentData != null && currentData.exists()) {
+                    String hostId = currentData.child("hostId").getValue(String.class);
+                    startGameActivity(gameId, playerId.equals(hostId));
+                } else {
+                    Toast.makeText(GameListActivity.this, "Could not join game (maybe full or closed)", Toast.LENGTH_SHORT).show();
                 }
             }
         });

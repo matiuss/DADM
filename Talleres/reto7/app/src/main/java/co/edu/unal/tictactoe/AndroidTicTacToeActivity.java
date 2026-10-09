@@ -78,6 +78,7 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
 
                 // Simulate move locally to check for winner
                 mGame.setMove(isHost ? TicTacToeGame.HUMAN_PLAYER : TicTacToeGame.COMPUTER_PLAYER, pos);
+                mBoardView.invalidate(); // Optimistic UI update
                 int winner = mGame.checkForWinner();
                 
                 String opponentId = isHost ? guestId : getHostId();
@@ -134,6 +135,8 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
         mNewGameButton.setOnClickListener(v -> resetGame());
 
         gameRef = FirebaseDatabase.getInstance().getReference("games").child(gameId);
+        gameRef.onDisconnect().removeValue();
+        
         listenForGameChanges();
     }
 
@@ -268,17 +271,38 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        // If host puts app in background while waiting for a guest, remove the ghost game
+        if (isHost && (guestId == null || guestId.isEmpty())) {
+            if (gameRef != null) {
+                gameRef.removeValue();
+                finish();
+            }
+        }
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
-        if (mHumanMediaPlayer != null) mHumanMediaPlayer.release();
-        if (mComputerMediaPlayer != null) mComputerMediaPlayer.release();
+        if (mHumanMediaPlayer != null) {
+            mHumanMediaPlayer.release();
+            mHumanMediaPlayer = null;
+        }
+        if (mComputerMediaPlayer != null) {
+            mComputerMediaPlayer.release();
+            mComputerMediaPlayer = null;
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (isFinishing() && gameRef != null) {
-            gameRef.removeValue();
+        if (gameRef != null) {
+            gameRef.onDisconnect().cancel();
+            if (isFinishing()) {
+                gameRef.removeValue();
+            }
         }
     }
 
