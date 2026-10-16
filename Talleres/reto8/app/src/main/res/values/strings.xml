@@ -1,0 +1,49 @@
+<resources>
+    <string name="app_name">Directorio de Empresas</string>
+    <string name="title_main">Directorio de Software</string>
+    <string name="title_add_company">Nueva Empresa</string>
+    <string name="title_edit_company">Editar Empresa</string>
+    <string name="add_company">Nueva Empresa</string>
+    <string name="company_name">Nombre de la empresa</string>
+
+    <!-- Búsqueda y Filtros -->
+    <string name="search_hint">Buscar por nombre…</string>
+    <string name="filter_all">Todas</string>
+    <string name="filter_consultoria">Consultoría</string>
+    <string name="filter_desarrollo">Desarrollo a la medida</string>
+    <string name="filter_fabrica">Fábrica de software</string>
+
+    <!-- Campos del Formulario -->
+    <string name="hint_name">Nombre de la empresa *</string>
+    <string name="hint_website">URL de la página web</string>
+    <string name="hint_phone">Teléfono de contacto</string>
+    <string name="hint_email">Email de contacto</string>
+    <string name="hint_products_services">Productos y servicios</string>
+    <string name="classification_title">Clasificación de la empresa * (selecciona al menos una)</string>
+
+    <!-- Acciones -->
+    <string name="btn_save">Guardar Empresa</string>
+    <string name="btn_cancel">Cancelar</string>
+    <string name="btn_delete">Eliminar</string>
+    <string name="btn_edit">Editar</string>
+
+    <!-- Diálogo de Confirmación de Eliminación -->
+    <string name="dialog_delete_title">¿Eliminar empresa?</string>
+    <string name="dialog_delete_message">¿Estás seguro de que deseas eliminar la empresa \"%1$s\"? Esta acción no se puede deshacer.</string>
+
+    <!-- Mensajes y Validaciones -->
+    <string name="error_name_required">El nombre de la empresa es obligatorio.</string>
+    <string name="error_classification_required">Debes seleccionar al menos una clasificación.</string>
+    <string name="msg_company_saved">Empresa guardada exitosamente.</string>
+    <string name="msg_company_updated">Empresa actualizada exitosamente.</string>
+    <string name="msg_company_deleted">Empresa eliminada.</string>
+    <string name="empty_companies_title">No hay empresas registradas</string>
+    <string name="empty_companies_subtitle">Usa el botón + para registrar la primera empresa de software.</string>
+    <string name="empty_search_title">Sin resultados</string>
+    <string name="empty_search_subtitle">No hay empresas que coincidan con la búsqueda o filtro seleccionado.</string>
+
+    <plurals name="companies_count">
+        <item quantity="one">%d empresa encontrada</item>
+        <item quantity="other">%d empresas encontradas</item>
+    </plurals>
+</resources>
