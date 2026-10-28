@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Reto 9 - Puntos de Interés GPS</string>
+    <string name="search_hint">Buscar punto de interés cercano (ej. Carulla, clínica)...</string>
+    <string name="settings_title">Preferencias de Búsqueda GPS</string>
+    <string name="btn_my_location">Mi ubicación GPS</string>
+    <string name="btn_coordinates">Cambiar mi dirección o coordenadas</string>
+    <string name="btn_settings">Preferencias de radio</string>
+    <string name="cat_all">Todos</string>
+    <string name="cat_hospital">Hospitales y Salud</string>
+    <string name="cat_tourism">Lugares Turísticos</string>
+    <string name="cat_shop">Supermercados y Comercios</string>
+    <string name="cat_restaurant">Restaurantes y Cafés</string>
+    <string name="cat_education">Educación y Cultura</string>
+    <string name="cat_services">Transporte y Servicios</string>
+</resources>
