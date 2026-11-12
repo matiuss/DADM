@@ -1,0 +1,54 @@
+<resources>
+    <string name="app_name">Colegios Bogotá</string>
+
+    <!-- Búsqueda -->
+    <string name="search_header">Busca colegios de Bogotá</string>
+    <string name="search_subheader">Datos abiertos de datos.gov.co · Listado Colegios Bogotá (Secretaría de Educación, 2016)</string>
+    <string name="hint_name">Nombre del colegio (opcional)</string>
+    <string name="hint_provider">Prestador del servicio</string>
+    <string name="hint_type">Tipo de establecimiento</string>
+    <string name="hint_schedule">Jornada</string>
+    <string name="hint_level">Nivel educativo</string>
+    <string name="hint_calendar">Calendario</string>
+    <string name="label_english">Solo colegios que enseñan inglés</string>
+    <string name="action_search">Buscar</string>
+    <string name="action_clear">Limpiar filtros</string>
+
+    <!-- Resultados -->
+    <string name="results_title">Resultados</string>
+    <string name="results_count">%1$d colegios encontrados</string>
+    <string name="results_count_one">1 colegio encontrado</string>
+    <string name="results_showing">Mostrando %1$d de %2$d</string>
+    <string name="results_empty">No se encontraron colegios con esos filtros.\nIntenta con menos filtros.</string>
+    <string name="error_network">No fue posible conectarse a datos.gov.co.\nRevisa tu conexión a internet.</string>
+    <string name="error_generic">Ocurrió un error al consultar el servicio:\n%1$s</string>
+    <string name="action_retry">Reintentar</string>
+    <string name="action_back_to_filters">Cambiar filtros</string>
+
+    <!-- Detalle -->
+    <string name="detail_title">Detalle del colegio</string>
+    <string name="action_call">Llamar</string>
+    <string name="action_email">Correo</string>
+    <string name="action_map">Mapa</string>
+    <string name="no_app_found">No hay una aplicación disponible para esta acción</string>
+    <string name="no_data">No registra</string>
+
+    <string name="field_address">Dirección</string>
+    <string name="field_phone">Teléfono</string>
+    <string name="field_email">Correo electrónico</string>
+    <string name="field_principal">Rector(a) / Responsable</string>
+    <string name="field_type">Tipo de establecimiento</string>
+    <string name="field_provider">Prestador del servicio</string>
+    <string name="field_zone">Zona</string>
+    <string name="field_calendar">Calendario</string>
+    <string name="field_schedule">Jornadas</string>
+    <string name="field_levels">Niveles</string>
+    <string name="field_grades">Grados</string>
+    <string name="field_models">Modelos educativos</string>
+    <string name="field_languages">Idiomas</string>
+    <string name="field_campus">Número de sedes</string>
+    <string name="field_building">Propiedad de la planta física</string>
+    <string name="field_contracted">Matrícula contratada</string>
+    <string name="field_secretaria">Secretaría de educación</string>
+    <string name="field_year">Año del reporte</string>
+</resources>
