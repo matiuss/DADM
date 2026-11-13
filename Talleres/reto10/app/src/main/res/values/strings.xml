@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Colegios Bogotá</string>
+    <string name="app_name">Reto10</string>
 
     <!-- Búsqueda -->
     <string name="search_header">Busca colegios de Bogotá</string>
