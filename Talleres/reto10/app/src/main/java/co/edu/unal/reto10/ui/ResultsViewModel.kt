@@ -7,6 +7,7 @@ import co.edu.unal.reto10.data.School
 import co.edu.unal.reto10.data.SchoolFilter
 import co.edu.unal.reto10.data.SchoolRepository
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -53,10 +54,13 @@ class ResultsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 // El conteo total y la primera página se piden en paralelo.
-                val totalDeferred = async { SchoolRepository.count(filter) }
-                val pageDeferred = async { SchoolRepository.search(filter, offset = 0) }
-                val total = totalDeferred.await()
-                val page = pageDeferred.await()
+                // coroutineScope agrupa ambas peticiones: si una falla (por ejemplo, sin internet)
+                // la excepción se lanza aquí y la atrapa el catch, en lugar de cerrar la app.
+                val (total, page) = coroutineScope {
+                    val totalDeferred = async { SchoolRepository.count(filter) }
+                    val pageDeferred = async { SchoolRepository.search(filter, offset = 0) }
+                    totalDeferred.await() to pageDeferred.await()
+                }
                 _state.value = ResultsState(
                     schools = page,
                     total = total,

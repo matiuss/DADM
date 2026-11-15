@@ -1,8 +1,11 @@
 package co.edu.unal.reto10.ui
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.IntentCompat
@@ -12,6 +15,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import co.edu.unal.reto10.R
+import co.edu.unal.reto10.data.NetworkMonitor
 import co.edu.unal.reto10.data.SchoolFilter
 import co.edu.unal.reto10.databinding.ActivityResultsBinding
 import kotlinx.coroutines.launch
@@ -23,6 +27,7 @@ class ResultsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityResultsBinding
     private val viewModel: ResultsViewModel by viewModels()
+    private lateinit var networkMonitor: NetworkMonitor
 
     private val adapter = SchoolAdapter(
         onSchoolClick = { school ->
@@ -60,12 +65,52 @@ class ResultsActivity : AppCompatActivity() {
             }
         })
 
+        binding.buttonConnect.setOnClickListener { openConnectivitySettings() }
+
+        // Cuando vuelve la conexión, se reintenta automáticamente lo que había fallado.
+        // Se esperan unos segundos porque Android avisa que la red está disponible un poco
+        // antes de que realmente se pueda usar (DNS, asignación de IP, etc.).
+        networkMonitor = NetworkMonitor(this) { online ->
+            binding.root.removeCallbacks(autoRetry)
+            if (online) binding.root.postDelayed(autoRetry, AUTO_RETRY_DELAY_MS)
+        }
+
         viewModel.start(filter)
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect { render(it) }
             }
+        }
+    }
+
+    private val autoRetry = Runnable {
+        val state = viewModel.state.value
+        when {
+            state.error is ResultsError.Network -> {
+                Toast.makeText(this, R.string.back_online, Toast.LENGTH_SHORT).show()
+                viewModel.loadFirstPage()
+            }
+            state.loadMoreFailed -> viewModel.loadNextPage()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        networkMonitor.start()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        networkMonitor.stop()
+        binding.root.removeCallbacks(autoRetry)
+    }
+
+    private fun openConnectivitySettings() {
+        try {
+            startActivity(NetworkMonitor.connectivitySettingsIntent())
+        } catch (e: ActivityNotFoundException) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
         }
     }
 
@@ -88,7 +133,8 @@ class ResultsActivity : AppCompatActivity() {
                         is ResultsError.Other -> getString(R.string.error_generic, error.detail)
                     },
                     buttonText = getString(R.string.action_retry),
-                    onClick = { viewModel.loadFirstPage() }
+                    onClick = { viewModel.loadFirstPage() },
+                    showConnect = error is ResultsError.Network
                 )
                 adapter.submit(emptyList(), null)
             }
@@ -106,8 +152,7 @@ class ResultsActivity : AppCompatActivity() {
                 binding.layoutMessage.visibility = View.GONE
                 val footer = if (state.schools.isEmpty()) null else SchoolAdapter.Footer(
                     text = when {
-                        state.loadMoreFailed -> getString(R.string.error_network).lines().first() +
-                            " · " + getString(R.string.action_retry)
+                        state.loadMoreFailed -> getString(R.string.offline_load_more)
                         else -> getString(R.string.results_showing, state.schools.size, state.total ?: state.schools.size)
                     },
                     loading = state.loadingMore,
@@ -118,14 +163,16 @@ class ResultsActivity : AppCompatActivity() {
         }
     }
 
-    private fun showMessage(text: String, buttonText: String, onClick: () -> Unit) {
+    private fun showMessage(text: String, buttonText: String, onClick: () -> Unit, showConnect: Boolean = false) {
         binding.layoutMessage.visibility = View.VISIBLE
         binding.textMessage.text = text
         binding.buttonMessage.text = buttonText
         binding.buttonMessage.setOnClickListener { onClick() }
+        binding.buttonConnect.visibility = if (showConnect) View.VISIBLE else View.GONE
     }
 
     companion object {
         const val EXTRA_FILTER = "extra_filter"
+        private const val AUTO_RETRY_DELAY_MS = 2_000L
     }
 }

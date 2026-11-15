@@ -23,6 +23,13 @@
     <string name="error_network">No fue posible conectarse a datos.gov.co.\nRevisa tu conexión a internet.</string>
     <string name="error_generic">Ocurrió un error al consultar el servicio:\n%1$s</string>
     <string name="action_retry">Reintentar</string>
+    <string name="action_connect">Conectarme</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="offline_title">Sin conexión a internet</string>
+    <string name="offline_message">Esta aplicación consulta los datos en línea en datos.gov.co.\nActiva el Wi-Fi o los datos móviles para buscar colegios.</string>
+    <string name="offline_banner">Sin conexión a internet. Conéctate para poder buscar.</string>
+    <string name="offline_load_more">Sin conexión · Toca para reintentar</string>
+    <string name="back_online">Conexión restablecida</string>
     <string name="action_back_to_filters">Cambiar filtros</string>
 
     <!-- Detalle -->

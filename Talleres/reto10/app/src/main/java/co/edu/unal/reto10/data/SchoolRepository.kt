@@ -9,6 +9,11 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Cliente del servicio web de datos.gov.co (API Socrata / SODA 2.0).
@@ -25,6 +30,10 @@ object SchoolRepository {
     const val PAGE_SIZE = 50
 
     private const val TIMEOUT_MS = 15_000
+    private const val TOTAL_TIMEOUT_S = 20L
+
+    /** Hilos para las peticiones HTTP (se reutilizan; los bloqueados por DNS no frenan a la app). */
+    private val executor = Executors.newCachedThreadPool()
 
     /** Consulta una página de colegios que cumplen el filtro, ordenados por nombre. */
     suspend fun search(filter: SchoolFilter, offset: Int, limit: Int = PAGE_SIZE): List<School> {
@@ -49,8 +58,28 @@ object SchoolRepository {
         return array.getJSONObject(0).optString("total", "0").toIntOrNull() ?: 0
     }
 
-    /** Ejecuta la petición GET en un hilo de E/S y devuelve el cuerpo como texto. */
+    /**
+     * Ejecuta la petición GET en un hilo aparte con un tiempo máximo total de [TOTAL_TIMEOUT_S] segundos.
+     * Los timeouts de HttpURLConnection no cubren la resolución DNS, que en redes sin internet real
+     * puede quedarse esperando mucho tiempo; por eso se limita la espera completa.
+     */
     private suspend fun get(params: Map<String, String>): String = withContext(Dispatchers.IO) {
+        val future = executor.submit(Callable { request(params) })
+        try {
+            future.get(TOTAL_TIMEOUT_S, TimeUnit.SECONDS)
+        } catch (e: TimeoutException) {
+            future.cancel(true)
+            throw IOException("Tiempo de espera agotado", e)
+        } catch (e: ExecutionException) {
+            throw e.cause ?: e
+        } catch (e: InterruptedException) {
+            future.cancel(true)
+            throw IOException("Petición interrumpida", e)
+        }
+    }
+
+    /** Petición HTTP bloqueante; devuelve el cuerpo de la respuesta como texto. */
+    private fun request(params: Map<String, String>): String {
         val url = URL(buildUrl(params))
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
@@ -64,7 +93,7 @@ object SchoolRepository {
                 val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
                 throw ApiException("El servicio respondió HTTP $code. ${extractMessage(errorBody)}".trim())
             }
-            connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            return connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
         } finally {
             connection.disconnect()
         }
