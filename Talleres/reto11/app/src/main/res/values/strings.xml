@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Reto11 · Asistente IA</string>
+
+    <string name="input_hint">Escribe un mensaje…</string>
+    <string name="typing">Pensando…</string>
+    <string name="suggestions_title">Prueba con:</string>
+    <string name="powered_by">Respuestas generadas con Google Gemini.\nPueden contener errores: verifica la información importante.</string>
+
+    <string name="action_send">Enviar</string>
+    <string name="action_stop">Detener</string>
+    <string name="action_copy">Copiar</string>
+    <string name="action_retry">Reintentar</string>
+    <string name="action_clear">Borrar conversación</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_continue">Continuar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_connect">Conectar</string>
+
+    <string name="copied">Texto copiado</string>
+
+    <string name="persona_title">Personalidad del bot</string>
+    <string name="persona_change_confirm">Cambiar a «%1$s» iniciará una conversación nueva. ¿Continuar?</string>
+
+    <string name="clear_title">Borrar conversación</string>
+    <string name="clear_message">Se eliminarán todos los mensajes de esta conversación.</string>
+
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_key_help">La app usa la API de Google Gemini. Necesitas una API key gratuita de Google AI Studio.</string>
+    <string name="settings_get_key">Obtener una API key ↗</string>
+    <string name="settings_api_key">API key de Gemini</string>
+    <string name="settings_model">Modelo</string>
+    <string name="settings_temperature">Creatividad (temperatura)</string>
+    <string name="settings_temperature_help">Valores bajos dan respuestas más precisas; valores altos, más creativas.</string>
+    <string name="settings_saved">Ajustes guardados</string>
+    <string name="settings_models_loading">Consultando modelos disponibles…</string>
+    <string name="settings_models_count">%1$d modelos disponibles para tu key</string>
+    <string name="settings_models_none">La API no reportó modelos; escribe el nombre manualmente.</string>
+    <string name="settings_model_unavailable">«%1$s» no está disponible para tu key. Elige uno de la lista.</string>
+    <string name="settings_models_error">No se pudo consultar la lista de modelos.</string>
+
+    <string name="offline_message">Sin conexión a internet</string>
+</resources>
