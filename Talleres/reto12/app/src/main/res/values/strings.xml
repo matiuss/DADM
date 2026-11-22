@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Reto 12</string>
+    <string name="title">Delegando la autenticación</string>
+    <string name="intro">Esta app no pide ni guarda contraseñas. Al iniciar sesión se abre la ventana oficial de Google, donde eliges tu cuenta y escribes tus credenciales; Google confirma tu identidad y Firebase abre la sesión en la app.</string>
+    <string name="login_with_google">Iniciar sesión con Google</string>
+    <string name="logout">Cerrar sesión</string>
+    <string name="signed_in_badge">✔ Autenticado con Firebase (Google)</string>
+    <string name="auth_success_title">Autenticación exitosa</string>
+    <string name="auth_success_message">¡Bienvenido, %1$s! Google y Firebase verificaron tu identidad correctamente.</string>
+    <string name="auth_failed_title">Autenticación fallida</string>
+    <string name="config_warning">⚠ El archivo app/google-services.json no tiene el cliente web. Activa el proveedor Google en Firebase Authentication y vuelve a descargarlo (ver README).</string>
+    <string name="details_format">UID de Firebase: %1$s\nCuenta creada: %2$s\nÚltimo inicio de sesión: %3$s</string>
+    <string name="avatar">Foto de perfil</string>
+</resources>

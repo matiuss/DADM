@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "203011836936",
+    "project_id": "reto12-51b4b",
+    "storage_bucket": "reto12-51b4b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203011836936:android:5787090ba937efd9b815bd",
+        "android_client_info": {
+          "package_name": "co.edu.unal.reto12"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "203011836936-hdk71oqeutf9c8s2dc89pgfllv6rppr0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "co.edu.unal.reto12",
+            "certificate_hash": "5602bcec40fc73337b661603caf7ae27e465f68f"
+          }
+        },
+        {
+          "client_id": "203011836936-7c1s7rl452j5522knaonotns9slo9kh5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC7DdhMgv4Ko2NLCWD_sqFgWfg8s6kiR4E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "203011836936-7c1s7rl452j5522knaonotns9slo9kh5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
