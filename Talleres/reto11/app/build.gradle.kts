@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
@@ -22,7 +23,7 @@ android {
 
     defaultConfig {
         applicationId = "co.edu.unal.reto11"
-        minSdk = 24
+        minSdk = 26 // LiteRT-LM requiere Android 8.0+
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -46,12 +47,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -64,7 +68,11 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+
+    // Modelo de lenguaje ejecutado en el propio celular (sin internet ni API key).
+    // https://github.com/google-ai-edge/LiteRT-LM — requiere compilador Kotlin 2.3+.
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.1")
 
     // Igual que en el Reto10: sin librerías HTTP/JSON externas.
     // La API REST de Gemini se consume con HttpURLConnection y el JSON con org.json.

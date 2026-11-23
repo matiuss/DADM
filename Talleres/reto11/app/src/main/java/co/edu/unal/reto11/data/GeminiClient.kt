@@ -15,7 +15,10 @@ import java.net.URL
 import java.net.URLEncoder
 
 /** Error devuelto por la API de Gemini (o por la red), con un mensaje listo para mostrar. */
-class GeminiException(message: String, val httpCode: Int = -1) : IOException(message)
+class GeminiException(message: String, val httpCode: Int = -1) : IOException(message) {
+    /** Saturación (5xx) o límite de peticiones (429): vale la pena reintentar u otro modelo. */
+    val isTransient: Boolean get() = httpCode == 429 || httpCode in 500..599
+}
 
 /**
  * Cliente mínimo de la API REST de Google Gemini (Generative Language API).
@@ -70,8 +73,11 @@ class GeminiClient {
                     if (!line.startsWith("data:")) continue
                     val json = JSONObject(line.removePrefix("data:").trim())
 
+                    // Un error dentro del stream (p. ej. 503 "overloaded") conserva su código HTTP
+                    // para que el ViewModel sepa si conviene reintentar.
                     json.optJSONObject("error")?.let {
-                        throw GeminiException(it.optString("message", "Error desconocido"))
+                        val errorCode = it.optInt("code", -1)
+                        throw GeminiException(parseError(errorCode, JSONObject().put("error", it).toString()), errorCode)
                     }
                     val chunk = extractText(json)
                     if (chunk.isNotEmpty()) {

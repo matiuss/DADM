@@ -21,7 +21,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import co.edu.unal.reto11.R
+import co.edu.unal.reto11.data.AiProvider
 import co.edu.unal.reto11.data.GeminiException
+import co.edu.unal.reto11.data.LocalModel
 import co.edu.unal.reto11.data.NetworkMonitor
 import co.edu.unal.reto11.data.Persona
 import co.edu.unal.reto11.data.SettingsStore
@@ -41,6 +43,10 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var adapter: MessageAdapter
     private lateinit var networkMonitor: NetworkMonitor
     private var renderedPersona: Persona? = null
+
+    private companion object {
+        const val MB = 1024L * 1024L
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,8 +82,12 @@ class ChatActivity : AppCompatActivity() {
             }
         }
 
-        // Primera vez sin API key: se abre directamente la configuración.
-        if (savedInstanceState == null && !viewModel.settings.hasApiKey) showSettingsDialog()
+        // Primera vez sin modelo descargado (o sin API key si se usa Gemini): se abre la configuración.
+        val needsSetup = when (viewModel.settings.provider) {
+            AiProvider.LOCAL -> !viewModel.modelStore.isDownloaded
+            AiProvider.GEMINI -> !viewModel.settings.hasApiKey
+        }
+        if (savedInstanceState == null && needsSetup) showSettingsDialog()
     }
 
     override fun onStart() {
@@ -126,7 +136,11 @@ class ChatActivity : AppCompatActivity() {
 
     private fun updateSubtitle() {
         val state = viewModel.state.value
-        binding.toolbar.subtitle = "${state.persona.emoji} ${state.persona.title} · ${viewModel.settings.model}"
+        val engine = when (viewModel.settings.provider) {
+            AiProvider.LOCAL -> "${LocalModel.DISPLAY_NAME} ${getString(R.string.subtitle_local)}"
+            AiProvider.GEMINI -> viewModel.settings.model
+        }
+        binding.toolbar.subtitle = "${state.persona.emoji} ${state.persona.title} · $engine"
     }
 
     private fun sendCurrentInput() {
@@ -233,16 +247,49 @@ class ChatActivity : AppCompatActivity() {
         dialogBinding.model.setOnItemClickListener { _, _, _, _ ->
             dialogBinding.modelLayout.helperText = null
         }
-        loadModels()
         dialogBinding.temperature.value = settings.temperature
         dialogBinding.getKeyLink.setOnClickListener {
             openUrl("https://aistudio.google.com/apikey")
+        }
+
+        // Selector de motor: muestra la sección correspondiente.
+        fun showProvider(provider: AiProvider) {
+            dialogBinding.localSection.visibility = if (provider == AiProvider.LOCAL) View.VISIBLE else View.GONE
+            dialogBinding.geminiSection.visibility = if (provider == AiProvider.GEMINI) View.VISIBLE else View.GONE
+            if (provider == AiProvider.GEMINI && modelsJob == null) loadModels()
+        }
+        dialogBinding.providerGroup.check(
+            if (settings.provider == AiProvider.LOCAL) R.id.providerLocal else R.id.providerGemini
+        )
+        dialogBinding.providerGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) showProvider(if (checkedId == R.id.providerLocal) AiProvider.LOCAL else AiProvider.GEMINI)
+        }
+        showProvider(settings.provider)
+
+        // Sección del modelo local: estado de la descarga en vivo.
+        val sizeMb = (LocalModel.SIZE_BYTES / MB).toInt()
+        dialogBinding.localHelp.text = getString(R.string.settings_local_help, LocalModel.DISPLAY_NAME, sizeMb)
+        dialogBinding.localDelete.setOnClickListener {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.local_delete_title)
+                .setMessage(getString(R.string.local_delete_message, sizeMb))
+                .setPositiveButton(R.string.local_delete) { _, _ -> viewModel.deleteModel() }
+                .setNegativeButton(R.string.action_cancel, null)
+                .show()
+        }
+        val downloadJob = lifecycleScope.launch {
+            viewModel.download.collect { state -> renderLocalModel(dialogBinding, state, sizeMb) }
         }
 
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.settings_title)
             .setView(dialogBinding.root)
             .setPositiveButton(R.string.action_save) { _, _ ->
+                settings.provider = if (dialogBinding.providerGroup.checkedButtonId == R.id.providerGemini) {
+                    AiProvider.GEMINI
+                } else {
+                    AiProvider.LOCAL
+                }
                 settings.apiKey = dialogBinding.apiKey.text?.toString().orEmpty()
                 settings.model = dialogBinding.model.text?.toString().orEmpty()
                 settings.temperature = dialogBinding.temperature.value
@@ -250,8 +297,47 @@ class ChatActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(R.string.action_cancel, null)
-            .setOnDismissListener { modelsJob?.cancel() }
+            .setOnDismissListener {
+                modelsJob?.cancel()
+                downloadJob.cancel() // la descarga sigue en el ViewModel; solo se deja de mostrar
+            }
             .show()
+    }
+
+    /** Muestra el estado del modelo local (listo, descargando, pausado o con error). */
+    private fun renderLocalModel(b: DialogSettingsBinding, state: DownloadState, sizeMb: Int) {
+        val store = viewModel.modelStore
+        val ready = store.isDownloaded
+        val partialMb = (store.downloadedBytes / MB).toInt()
+        b.localStatus.text = when {
+            state is DownloadState.Running ->
+                getString(R.string.local_status_downloading, (state.downloaded / MB).toInt(), sizeMb)
+            ready -> getString(R.string.local_status_ready)
+            state is DownloadState.Failed -> getString(R.string.local_status_failed, state.message)
+            partialMb > 0 -> getString(R.string.local_status_paused, partialMb, sizeMb)
+            else -> getString(R.string.local_status_missing)
+        }
+        b.localStatus.setTextColor(
+            getColor(if (state is DownloadState.Failed && !ready) R.color.error else R.color.on_surface)
+        )
+
+        val progress = when (state) {
+            is DownloadState.Running -> state.downloaded * 1000 / state.total
+            else -> if (!ready && partialMb > 0) store.downloadedBytes * 1000 / LocalModel.SIZE_BYTES else -1
+        }
+        b.localProgress.visibility = if (progress >= 0) View.VISIBLE else View.GONE
+        if (progress >= 0) b.localProgress.setProgressCompat(progress.toInt(), true)
+
+        b.localDownload.visibility = if (ready) View.GONE else View.VISIBLE
+        b.localDownload.text = when {
+            state is DownloadState.Running -> getString(R.string.local_pause)
+            partialMb > 0 -> getString(R.string.local_resume)
+            else -> getString(R.string.local_download, sizeMb)
+        }
+        b.localDownload.setOnClickListener {
+            if (viewModel.download.value is DownloadState.Running) viewModel.cancelDownload() else viewModel.startDownload()
+        }
+        b.localDelete.visibility = if (ready || (partialMb > 0 && state !is DownloadState.Running)) View.VISIBLE else View.GONE
     }
 
     // ---------------------------------------------------------------- Utilidades

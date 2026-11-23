@@ -69,6 +69,9 @@ class MessageAdapter(
                 b.bubble.setCardBackgroundColor(ContextCompat.getColor(context, R.color.bubble_model))
             }
 
+            b.note.text = message.note
+            b.note.visibility = if (message.note.isNullOrEmpty()) View.GONE else View.VISIBLE
+
             val finished = !message.isStreaming
             b.actions.visibility = if (finished) View.VISIBLE else View.GONE
             b.copyButton.visibility = if (finished && !message.isError) View.VISIBLE else View.GONE

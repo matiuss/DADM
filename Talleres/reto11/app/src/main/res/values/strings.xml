@@ -5,7 +5,7 @@
     <string name="input_hint">Escribe un mensaje…</string>
     <string name="typing">Pensando…</string>
     <string name="suggestions_title">Prueba con:</string>
-    <string name="powered_by">Respuestas generadas con Google Gemini.\nPueden contener errores: verifica la información importante.</string>
+    <string name="powered_by">Respuestas generadas por IA (modelo en el celular o Google Gemini).\nPueden contener errores: verifica la información importante.</string>
 
     <string name="action_send">Enviar</string>
     <string name="action_stop">Detener</string>
@@ -38,6 +38,24 @@
     <string name="settings_models_none">La API no reportó modelos; escribe el nombre manualmente.</string>
     <string name="settings_model_unavailable">«%1$s» no está disponible para tu key. Elige uno de la lista.</string>
     <string name="settings_models_error">No se pudo consultar la lista de modelos.</string>
+
+    <string name="settings_provider">Motor de IA</string>
+    <string name="provider_local">En el celular</string>
+    <string name="provider_gemini">Gemini (nube)</string>
+    <string name="settings_local_help">%1$s se ejecuta en tu celular: sin internet, sin API key y sin límites de uso. Se descarga una sola vez (%2$d MB). Es un modelo pequeño: sus respuestas son más simples que las de Gemini.</string>
+    <string name="local_status_ready">✅ Modelo descargado y listo</string>
+    <string name="local_status_missing">Modelo no descargado</string>
+    <string name="local_status_paused">Descarga pausada: %1$d de %2$d MB</string>
+    <string name="local_status_downloading">Descargando… %1$d de %2$d MB</string>
+    <string name="local_status_failed">⚠️ %1$s</string>
+    <string name="local_download">Descargar (%1$d MB)</string>
+    <string name="local_resume">Reanudar descarga</string>
+    <string name="local_pause">Pausar</string>
+    <string name="local_delete">Eliminar</string>
+    <string name="local_delete_title">Eliminar modelo</string>
+    <string name="local_delete_message">Se borrará el modelo del celular (%1$d MB). Podrás volver a descargarlo cuando quieras.</string>
+    <string name="local_need_download">Descarga el modelo para poder conversar sin internet.</string>
+    <string name="subtitle_local">en el celular</string>
 
     <string name="offline_message">Sin conexión a internet</string>
 </resources>

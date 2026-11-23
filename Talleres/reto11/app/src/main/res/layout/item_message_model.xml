@@ -80,6 +80,18 @@
             </FrameLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <TextView
+            android:id="@+id/note"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="Respondido con gemini-flash-latest porque gemini-flash-lite-latest estaba saturado."
+            tools:visibility="visible" />
+
         <LinearLayout
             android:id="@+id/actions"
             android:layout_width="wrap_content"
