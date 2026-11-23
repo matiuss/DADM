@@ -111,6 +111,7 @@ class LocalLlmClient(context: Context, private val modelFile: File) : AutoClosea
             runCatching { engine?.close() }
             engine = null
             isLoaded = false
+            backendName = null
         }
     }
 
@@ -119,26 +120,51 @@ class LocalLlmClient(context: Context, private val modelFile: File) : AutoClosea
         runCatching { engine?.close() }
         engine = null
         isLoaded = false
+        backendName = null
     }
+
+    /** Dónde se está ejecutando el modelo ("GPU" o "CPU"), o null si aún no se ha cargado. */
+    @Volatile
+    var backendName: String? = null
+        private set
 
     private fun loadEngine(): Engine {
         engine?.let { return it }
         check(modelFile.exists()) { "El modelo no está descargado. Descárgalo en Ajustes." }
-        val newEngine = Engine(
-            EngineConfig(
-                modelPath = modelFile.absolutePath,
-                // CPU: funciona en cualquier celular (y en el emulador). La GPU es más rápida pero
-                // depende de OpenCL, que no todos los equipos exponen a las apps.
-                backend = Backend.CPU(),
-                maxNumTokens = LocalModel.CONTEXT_TOKENS,
-                cacheDir = cacheDir
-            )
-        )
-        newEngine.initialize() // puede tardar varios segundos; si falla, no se guarda el motor
+        // La GPU es varias veces más rápida, pero depende de OpenCL, que no todos los equipos (ni el
+        // emulador) exponen a las apps. Si no se puede, se usa la CPU.
+        val gpu = runCatching { createEngine(Backend.GPU()) }.getOrNull()
+        val newEngine = gpu ?: createEngine(Backend.CPU(threadCount = cpuThreads()))
+        backendName = if (gpu != null) "GPU" else "CPU"
         engine = newEngine
         isLoaded = true
         return newEngine
     }
+
+    /** Crea e inicializa el motor (puede tardar varios segundos); si falla, lo libera y relanza. */
+    private fun createEngine(backend: Backend): Engine {
+        val newEngine = Engine(
+            EngineConfig(
+                modelPath = modelFile.absolutePath,
+                backend = backend,
+                maxNumTokens = LocalModel.CONTEXT_TOKENS,
+                cacheDir = cacheDir
+            )
+        )
+        try {
+            newEngine.initialize()
+        } catch (e: Throwable) {
+            runCatching { newEngine.close() }
+            throw e
+        }
+        return newEngine
+    }
+
+    /**
+     * Hilos para la CPU: los celulares mezclan núcleos rápidos y lentos; usar todos hace que los
+     * rápidos esperen a los lentos. 4 suele coincidir con los núcleos de alto rendimiento.
+     */
+    private fun cpuThreads(): Int = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
 
     /**
      * El modelo pequeño tiene un contexto limitado: se conservan solo los mensajes más recientes

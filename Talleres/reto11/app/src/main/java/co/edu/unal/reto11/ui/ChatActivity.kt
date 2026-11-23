@@ -137,7 +137,8 @@ class ChatActivity : AppCompatActivity() {
     private fun updateSubtitle() {
         val state = viewModel.state.value
         val engine = when (viewModel.settings.provider) {
-            AiProvider.LOCAL -> "${LocalModel.DISPLAY_NAME} ${getString(R.string.subtitle_local)}"
+            AiProvider.LOCAL -> "${LocalModel.DISPLAY_NAME} ${getString(R.string.subtitle_local)}" +
+                (viewModel.localBackend?.let { " · $it" } ?: "")
             AiProvider.GEMINI -> viewModel.settings.model
         }
         binding.toolbar.subtitle = "${state.persona.emoji} ${state.persona.title} · $engine"
