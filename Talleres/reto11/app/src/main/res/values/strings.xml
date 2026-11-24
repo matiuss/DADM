@@ -42,18 +42,22 @@
     <string name="settings_provider">Motor de IA</string>
     <string name="provider_local">En el celular</string>
     <string name="provider_gemini">Gemini (nube)</string>
-    <string name="settings_local_help">%1$s se ejecuta en tu celular: sin internet, sin API key y sin límites de uso. Se descarga una sola vez (%2$d MB). Es un modelo pequeño: sus respuestas son más simples que las de Gemini.</string>
+    <string name="settings_local_model">Modelo</string>
+    <string name="settings_local_help">%1$s
+
+Se ejecuta en tu celular: sin internet, sin API key y sin límites de uso. Se descarga una sola vez (%2$s). Cada modelo se descarga por separado.</string>
+    <string name="local_status_other_downloading">Se está descargando %1$s; si descargas este, esa descarga se pausará.</string>
     <string name="local_status_ready">✅ Modelo descargado y listo</string>
     <string name="local_status_missing">Modelo no descargado</string>
-    <string name="local_status_paused">Descarga pausada: %1$d de %2$d MB</string>
-    <string name="local_status_downloading">Descargando… %1$d de %2$d MB</string>
+    <string name="local_status_paused">Descarga pausada: %1$d MB de %2$s</string>
+    <string name="local_status_downloading">Descargando… %1$d MB de %2$s</string>
     <string name="local_status_failed">⚠️ %1$s</string>
-    <string name="local_download">Descargar (%1$d MB)</string>
+    <string name="local_download">Descargar (%1$s)</string>
     <string name="local_resume">Reanudar descarga</string>
     <string name="local_pause">Pausar</string>
     <string name="local_delete">Eliminar</string>
     <string name="local_delete_title">Eliminar modelo</string>
-    <string name="local_delete_message">Se borrará el modelo del celular (%1$d MB). Podrás volver a descargarlo cuando quieras.</string>
+    <string name="local_delete_message">Se borrará %1$s del celular (%2$s). Podrás volver a descargarlo cuando quieras.</string>
     <string name="local_need_download">Descarga el modelo para poder conversar sin internet.</string>
     <string name="subtitle_local">en el celular</string>
 

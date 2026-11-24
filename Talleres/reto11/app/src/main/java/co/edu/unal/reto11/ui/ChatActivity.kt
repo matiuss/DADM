@@ -84,7 +84,7 @@ class ChatActivity : AppCompatActivity() {
 
         // Primera vez sin modelo descargado (o sin API key si se usa Gemini): se abre la configuración.
         val needsSetup = when (viewModel.settings.provider) {
-            AiProvider.LOCAL -> !viewModel.modelStore.isDownloaded
+            AiProvider.LOCAL -> !viewModel.activeModelStore.isDownloaded
             AiProvider.GEMINI -> !viewModel.settings.hasApiKey
         }
         if (savedInstanceState == null && needsSetup) showSettingsDialog()
@@ -137,7 +137,7 @@ class ChatActivity : AppCompatActivity() {
     private fun updateSubtitle() {
         val state = viewModel.state.value
         val engine = when (viewModel.settings.provider) {
-            AiProvider.LOCAL -> "${LocalModel.DISPLAY_NAME} ${getString(R.string.subtitle_local)}" +
+            AiProvider.LOCAL -> "${viewModel.settings.localModel.displayName} ${getString(R.string.subtitle_local)}" +
                 (viewModel.localBackend?.let { " · $it" } ?: "")
             AiProvider.GEMINI -> viewModel.settings.model
         }
@@ -267,19 +267,32 @@ class ChatActivity : AppCompatActivity() {
         }
         showProvider(settings.provider)
 
-        // Sección del modelo local: estado de la descarga en vivo.
-        val sizeMb = (LocalModel.SIZE_BYTES / MB).toInt()
-        dialogBinding.localHelp.text = getString(R.string.settings_local_help, LocalModel.DISPLAY_NAME, sizeMb)
+        // Sección del modelo local: selector de modelo y estado de su descarga en vivo. El modelo
+        // elegido se guarda al pulsar "Guardar"; descargar o eliminar actúa de inmediato.
+        val localModels = LocalModel.entries
+        var selectedModel = settings.localModel
+        dialogBinding.localModel.setAdapter(
+            ArrayAdapter(this, android.R.layout.simple_list_item_1, localModels.map { it.label })
+        )
+        fun showLocalModel(model: LocalModel) {
+            selectedModel = model
+            dialogBinding.localModel.setText(model.label, false)
+            dialogBinding.localHelp.text = getString(R.string.settings_local_help, model.description, model.sizeLabel)
+            renderLocalModel(dialogBinding, viewModel.download.value, model)
+        }
+        dialogBinding.localModel.setOnItemClickListener { _, _, position, _ -> showLocalModel(localModels[position]) }
         dialogBinding.localDelete.setOnClickListener {
+            val model = selectedModel
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.local_delete_title)
-                .setMessage(getString(R.string.local_delete_message, sizeMb))
-                .setPositiveButton(R.string.local_delete) { _, _ -> viewModel.deleteModel() }
+                .setMessage(getString(R.string.local_delete_message, model.displayName, model.sizeLabel))
+                .setPositiveButton(R.string.local_delete) { _, _ -> viewModel.deleteModel(model) }
                 .setNegativeButton(R.string.action_cancel, null)
                 .show()
         }
+        showLocalModel(selectedModel)
         val downloadJob = lifecycleScope.launch {
-            viewModel.download.collect { state -> renderLocalModel(dialogBinding, state, sizeMb) }
+            viewModel.download.collect { state -> renderLocalModel(dialogBinding, state, selectedModel) }
         }
 
         MaterialAlertDialogBuilder(this)
@@ -291,6 +304,7 @@ class ChatActivity : AppCompatActivity() {
                 } else {
                     AiProvider.LOCAL
                 }
+                settings.localModel = selectedModel
                 settings.apiKey = dialogBinding.apiKey.text?.toString().orEmpty()
                 settings.model = dialogBinding.model.text?.toString().orEmpty()
                 settings.temperature = dialogBinding.temperature.value
@@ -305,40 +319,45 @@ class ChatActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Muestra el estado del modelo local (listo, descargando, pausado o con error). */
-    private fun renderLocalModel(b: DialogSettingsBinding, state: DownloadState, sizeMb: Int) {
-        val store = viewModel.modelStore
+    /** Muestra el estado de [model] (listo, descargando, pausado o con error). */
+    private fun renderLocalModel(b: DialogSettingsBinding, state: DownloadState, model: LocalModel) {
+        val store = viewModel.modelStore(model)
         val ready = store.isDownloaded
         val partialMb = (store.downloadedBytes / MB).toInt()
+        // La descarga en curso (o el error) puede ser de otro modelo distinto al que se está viendo.
+        val running = (state as? DownloadState.Running)?.takeIf { it.model == model }
+        val failed = (state as? DownloadState.Failed)?.takeIf { it.model == model }
+        val otherRunning = (state as? DownloadState.Running)?.takeIf { it.model != model }
         b.localStatus.text = when {
-            state is DownloadState.Running ->
-                getString(R.string.local_status_downloading, (state.downloaded / MB).toInt(), sizeMb)
+            running != null ->
+                getString(R.string.local_status_downloading, (running.downloaded / MB).toInt(), model.sizeLabel)
             ready -> getString(R.string.local_status_ready)
-            state is DownloadState.Failed -> getString(R.string.local_status_failed, state.message)
-            partialMb > 0 -> getString(R.string.local_status_paused, partialMb, sizeMb)
+            failed != null -> getString(R.string.local_status_failed, failed.message)
+            otherRunning != null ->
+                getString(R.string.local_status_other_downloading, otherRunning.model.displayName)
+            partialMb > 0 -> getString(R.string.local_status_paused, partialMb, model.sizeLabel)
             else -> getString(R.string.local_status_missing)
         }
-        b.localStatus.setTextColor(
-            getColor(if (state is DownloadState.Failed && !ready) R.color.error else R.color.on_surface)
-        )
+        b.localStatus.setTextColor(getColor(if (failed != null && !ready) R.color.error else R.color.on_surface))
 
-        val progress = when (state) {
-            is DownloadState.Running -> state.downloaded * 1000 / state.total
-            else -> if (!ready && partialMb > 0) store.downloadedBytes * 1000 / LocalModel.SIZE_BYTES else -1
+        val progress = when {
+            running != null -> running.downloaded * 1000 / running.total
+            !ready && partialMb > 0 -> store.downloadedBytes * 1000 / model.sizeBytes
+            else -> -1
         }
         b.localProgress.visibility = if (progress >= 0) View.VISIBLE else View.GONE
         if (progress >= 0) b.localProgress.setProgressCompat(progress.toInt(), true)
 
         b.localDownload.visibility = if (ready) View.GONE else View.VISIBLE
         b.localDownload.text = when {
-            state is DownloadState.Running -> getString(R.string.local_pause)
+            running != null -> getString(R.string.local_pause)
             partialMb > 0 -> getString(R.string.local_resume)
-            else -> getString(R.string.local_download, sizeMb)
+            else -> getString(R.string.local_download, model.sizeLabel)
         }
         b.localDownload.setOnClickListener {
-            if (viewModel.download.value is DownloadState.Running) viewModel.cancelDownload() else viewModel.startDownload()
+            if (running != null) viewModel.cancelDownload() else viewModel.startDownload(model)
         }
-        b.localDelete.visibility = if (ready || (partialMb > 0 && state !is DownloadState.Running)) View.VISIBLE else View.GONE
+        b.localDelete.visibility = if (ready || (partialMb > 0 && running == null)) View.VISIBLE else View.GONE
     }
 
     // ---------------------------------------------------------------- Utilidades

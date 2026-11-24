@@ -74,6 +74,10 @@ dependencies {
     // https://github.com/google-ai-edge/LiteRT-LM — requiere compilador Kotlin 2.3+.
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.1")
 
+    // Dibuja fórmulas LaTeX (integrales, fracciones, potencias…) dentro del texto del chat.
+    // https://github.com/noties/jlatexmath-android
+    implementation("ru.noties:jlatexmath-android:0.2.0")
+
     // Igual que en el Reto10: sin librerías HTTP/JSON externas.
     // La API REST de Gemini se consume con HttpURLConnection y el JSON con org.json.
 

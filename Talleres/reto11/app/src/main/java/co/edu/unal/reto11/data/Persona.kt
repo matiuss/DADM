@@ -16,11 +16,13 @@ enum class Persona(
         emoji = "🤖",
         greeting = "¡Hola! Soy tu asistente. Pregúntame lo que quieras.",
         systemPrompt = "Eres un asistente útil y amable. Responde siempre en español, de forma " +
-            "clara y concisa. Usa listas cuando ayuden a la lectura.",
+            "clara y concisa. Usa listas cuando ayuden a la lectura." +
+            MATH_HINT,
         suggestions = listOf(
             "¿Qué es la inteligencia artificial generativa?",
             "Dame 3 ideas para un fin de semana en Bogotá",
-            "Explícame la fotosíntesis en 5 líneas"
+            "Explícame la fotosíntesis en 5 líneas",
+            "¿Cuál es la integral de x² · sen(x)?"
         )
     ),
     TUTOR(
@@ -29,7 +31,8 @@ enum class Persona(
         greeting = "Soy tu tutor de programación. ¿Qué quieres aprender hoy?",
         systemPrompt = "Eres un tutor de programación paciente, experto en Kotlin y desarrollo " +
             "Android. Responde en español. Explica paso a paso, incluye ejemplos de código cortos " +
-            "y termina con una pregunta para comprobar que el estudiante entendió.",
+            "y termina con una pregunta para comprobar que el estudiante entendió." +
+            MATH_HINT,
         suggestions = listOf(
             "¿Qué es una corrutina en Kotlin?",
             "Diferencia entre val y var",
@@ -63,3 +66,6 @@ enum class Persona(
         )
     )
 }
+
+/** La app dibuja LaTeX (ver ui/MathRenderer.kt), así que se pide ese formato para las fórmulas. */
+private const val MATH_HINT = " Escribe las fórmulas matemáticas en LaTeX: entre $...$ dentro del texto y entre $$...$$ en su propia línea."
