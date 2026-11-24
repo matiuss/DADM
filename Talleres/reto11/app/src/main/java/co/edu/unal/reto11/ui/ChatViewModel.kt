@@ -38,12 +38,12 @@ data class ChatUiState(
     val isGenerating: Boolean = false
 )
 
-/** Estado de la descarga del modelo local. */
+/** Estado de la descarga de modelos locales (solo se descarga uno a la vez). */
 sealed interface DownloadState {
-    /** Sin descarga en curso; [bytesOnDisk] cambia al terminar, pausar o borrar, para refrescar la UI. */
-    data class Idle(val bytesOnDisk: Long) : DownloadState
-    data class Running(val downloaded: Long, val total: Long) : DownloadState
-    data class Failed(val message: String) : DownloadState
+    /** Sin descarga en curso; [version] cambia al terminar, pausar o borrar, para refrescar la UI. */
+    data class Idle(val version: Int) : DownloadState
+    data class Running(val model: LocalModel, val downloaded: Long, val total: Long) : DownloadState
+    data class Failed(val model: LocalModel, val message: String) : DownloadState
 }
 
 /** Mantiene la conversación (sobrevive a rotaciones) y orquesta las llamadas a Gemini. */
@@ -51,14 +51,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     val settings = SettingsStore(application)
     private val client = GeminiClient()
-    val modelStore = LocalModelStore(application)
-    private val localClient = LocalLlmClient(application, modelStore.file)
+    private val modelStores = LocalModel.entries.associateWith { LocalModelStore(application, it) }
+    private val localClient = LocalLlmClient(application)
+
+    /** Archivo y estado de descarga de cada modelo local. */
+    fun modelStore(model: LocalModel): LocalModelStore = modelStores.getValue(model)
+
+    /** El modelo local elegido en Ajustes. */
+    val activeModelStore: LocalModelStore get() = modelStore(settings.localModel)
 
     /** "GPU" o "CPU" según dónde corre el modelo local; null si aún no se ha cargado. */
     val localBackend: String? get() = localClient.backendName
     private var downloadJob: Job? = null
 
-    private val _download = MutableStateFlow<DownloadState>(DownloadState.Idle(modelStore.downloadedBytes))
+    private var downloadVersion = 0
+    private val _download = MutableStateFlow<DownloadState>(DownloadState.Idle(downloadVersion))
     val download: StateFlow<DownloadState> = _download.asStateFlow()
     private var nextId = 0L
     private var generationJob: Job? = null
@@ -133,32 +140,45 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Genera la respuesta con el modelo que corre en el celular. */
     private suspend fun streamLocal(replyId: Long, systemPrompt: String, history: List<ChatMessage>) {
-        if (!modelStore.isDownloaded) {
+        val store = activeModelStore
+        val model = store.model
+        if (!store.isDownloaded) {
             throw GeminiException(
-                "Primero descarga el modelo ${LocalModel.DISPLAY_NAME} (~330 MB, una sola vez) en el menú ⋮ → Ajustes."
+                "Primero descarga el modelo ${model.displayName} (${model.sizeLabel}, una sola vez) en el menú ⋮ → Ajustes."
             )
         }
-        if (!localClient.isLoaded) {
-            updateMessage(replyId) { it.copy(note = "Cargando el modelo en memoria (solo la primera vez)…") }
+        if (localClient.loadedModel != model) {
+            updateMessage(replyId) { it.copy(note = "Cargando ${model.displayName} en memoria…") }
         }
-        localClient.streamReply(systemPrompt, history, settings.temperature).collect { chunk ->
+        localClient.streamReply(model, store.file, systemPrompt, history, settings.temperature).collect { chunk ->
             updateMessage(replyId) { it.copy(text = it.text + chunk, note = null) }
         }
     }
 
-    /** Descarga el modelo local (o reanuda una descarga interrumpida). */
-    fun startDownload() {
-        if (downloadJob?.isActive == true || modelStore.isDownloaded) return
-        _download.value = DownloadState.Running(modelStore.downloadedBytes, LocalModel.SIZE_BYTES)
+    /**
+     * Descarga [model] (o reanuda una descarga interrumpida). Si se estaba descargando otro
+     * modelo, esa descarga se pausa (lo descargado se conserva).
+     */
+    fun startDownload(model: LocalModel) {
+        val store = modelStore(model)
+        if (store.isDownloaded) return
+        val running = _download.value as? DownloadState.Running
+        if (downloadJob?.isActive == true && running?.model == model) return
+        downloadJob?.cancel()
+        _download.value = DownloadState.Running(model, store.downloadedBytes, model.sizeBytes)
         downloadJob = viewModelScope.launch {
             try {
-                modelStore.download { done, total -> _download.value = DownloadState.Running(done, total) }
-                _download.value = DownloadState.Idle(modelStore.downloadedBytes)
+                store.download { done, total -> _download.value = DownloadState.Running(model, done, total) }
+                _download.value = DownloadState.Idle(++downloadVersion)
             } catch (e: CancellationException) {
-                _download.value = DownloadState.Idle(modelStore.downloadedBytes)
+                // Solo si no empezó ya otra descarga (que habría cancelado esta).
+                if ((_download.value as? DownloadState.Running)?.model == model) {
+                    _download.value = DownloadState.Idle(++downloadVersion)
+                }
                 throw e
             } catch (e: Exception) {
                 _download.value = DownloadState.Failed(
+                    model,
                     when (e) {
                         is UnknownHostException -> "Sin conexión a internet. Conéctate y vuelve a intentarlo."
                         is SocketTimeoutException -> "La descarga se detuvo por falta de respuesta. Reintenta: continuará donde quedó."
@@ -174,14 +194,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         downloadJob?.cancel()
     }
 
-    /** Borra el archivo del modelo para liberar espacio. */
-    fun deleteModel() {
-        if (_state.value.isGenerating) stop()
-        downloadJob?.cancel()
+    /** Borra el archivo de [model] para liberar espacio. */
+    fun deleteModel(model: LocalModel) {
+        if ((_download.value as? DownloadState.Running)?.model == model) downloadJob?.cancel()
         viewModelScope.launch {
-            localClient.unload()
-            modelStore.delete()
-            _download.value = DownloadState.Idle(modelStore.downloadedBytes)
+            if (localClient.loadedModel == model) {
+                if (_state.value.isGenerating) stop()
+                localClient.unload()
+            }
+            modelStore(model).delete()
+            _download.value = DownloadState.Idle(++downloadVersion)
         }
     }
 

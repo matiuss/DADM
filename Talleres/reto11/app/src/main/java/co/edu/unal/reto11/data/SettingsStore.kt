@@ -46,10 +46,17 @@ class SettingsStore(context: Context) {
             .getOrDefault(AiProvider.LOCAL)
         set(value) = prefs.edit().putString(KEY_PROVIDER, value.name).apply()
 
+    /** Modelo que corre en el celular cuando el motor es [AiProvider.LOCAL]. */
+    var localModel: LocalModel
+        get() = runCatching { LocalModel.valueOf(prefs.getString(KEY_LOCAL_MODEL, null)!!) }
+            .getOrDefault(LocalModel.QWEN3_0_6B)
+        set(value) = prefs.edit().putString(KEY_LOCAL_MODEL, value.name).apply()
+
     val hasApiKey: Boolean get() = apiKey.isNotBlank()
 
     companion object {
         private const val KEY_PROVIDER = "provider"
+        private const val KEY_LOCAL_MODEL = "local_model"
         private const val KEY_API_KEY = "api_key"
         private const val KEY_MODEL = "model"
         private const val KEY_TEMPERATURE = "temperature"

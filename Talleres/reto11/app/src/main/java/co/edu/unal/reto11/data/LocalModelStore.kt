@@ -12,41 +12,84 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Modelo de lenguaje que se ejecuta en el celular con LiteRT-LM.
+ * Modelos de lenguaje que se pueden ejecutar en el celular con LiteRT-LM (se elige en Ajustes).
  *
- * Qwen3 0.6B (Alibaba, licencia Apache 2.0) convertido por Google al formato `.litertlm`:
- * pesos INT4, contexto de 4096 tokens y ~330 MB. Es de los modelos más pequeños que aún
- * conversan de forma útil en español. Se fija un commit del repositorio para que el archivo
- * descargado no cambie si lo vuelven a exportar.
+ * Todos tienen licencia Apache 2.0 y están convertidos al formato `.litertlm` en el repositorio
+ * `litert-community` de Hugging Face. Se fija un commit de cada repositorio para que el archivo
+ * descargado no cambie si lo vuelven a exportar (y así el tamaño esperado sigue siendo válido).
  */
-object LocalModel {
-    const val DISPLAY_NAME = "Qwen3 0.6B"
-    const val FILE_NAME = "Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm"
-    const val SIZE_BYTES = 343_490_560L
-    private const val REVISION = "8d42ab5f1db14cad987fac57aeb17d070f9e180d"
-    const val URL =
-        "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/$REVISION/$FILE_NAME"
+enum class LocalModel(
+    val displayName: String,
+    /** Nivel que se muestra en el selector de Ajustes. */
+    val tier: String,
+    /** Explicación corta de para qué sirve, para ayudar a elegir. */
+    val description: String,
+    private val repo: String,
+    private val revision: String,
+    val fileName: String,
+    val sizeBytes: Long,
+    /** Tokens de contexto (instrucción + historial + respuesta). */
+    val contextTokens: Int = 4096
+) {
+    QWEN3_0_6B(
+        displayName = "Qwen3 0.6B",
+        tier = "Básico",
+        description = "El más pequeño y rápido. Respuestas simples y con errores ocasionales.",
+        repo = "litert-community/Qwen3-0.6B",
+        revision = "8d42ab5f1db14cad987fac57aeb17d070f9e180d",
+        fileName = "Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm",
+        sizeBytes = 343_490_560L
+    ),
+    QWEN3_1_7B(
+        displayName = "Qwen3 1.7B",
+        tier = "Ligero",
+        description = "Buen equilibrio: responde bastante mejor que el básico y sigue siendo rápido.",
+        repo = "litert-community/Qwen3-1.7B",
+        revision = "c421cc3775575372ac2ca4aa1bebc97300ae36b6",
+        fileName = "Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm",
+        sizeBytes = 977_184_032L
+    ),
+    GEMMA4_E2B(
+        displayName = "Gemma 4 E2B",
+        tier = "Avanzado",
+        description = "La mejor calidad y el mejor español, pero es más lento y la descarga es grande: " +
+            "usa Wi-Fi.",
+        repo = "litert-community/gemma-4-E2B-it-litert-lm",
+        revision = "2e12bfd869b2962984f97a1f2a26807316d534cc",
+        fileName = "gemma-4-E2B-it.litertlm",
+        sizeBytes = 2_588_147_712L
+    );
 
-    /** Tokens de contexto del modelo (instrucción + historial + respuesta). */
-    const val CONTEXT_TOKENS = 4096
+    val url: String get() = "https://huggingface.co/$repo/resolve/$revision/$fileName"
+
+    /** Tamaño legible: "328 MB" o "2.4 GB". */
+    val sizeLabel: String
+        get() {
+            val mb = sizeBytes / (1024.0 * 1024.0)
+            return if (mb < 1024) "${mb.toInt()} MB" else String.format(java.util.Locale.US, "%.1f GB", mb / 1024)
+        }
+
+    /** Texto del selector, p. ej. "Ligero · Qwen3 1.7B (932 MB)". */
+    val label: String get() = "$tier · $displayName ($sizeLabel)"
 }
 
 /**
  * Descarga y guarda el archivo del modelo en el almacenamiento interno de la app.
  *
- * El archivo no va dentro del APK (pesa cientos de MB): se descarga una sola vez. La descarga se
- * escribe en un `.part` y se reanuda desde donde quedó (encabezado HTTP `Range`) si se corta.
+ * Hay un almacén por modelo. El archivo no va dentro del APK (pesa cientos de MB o más): se
+ * descarga una sola vez. La descarga se escribe en un `.part` y se reanuda desde donde quedó
+ * (encabezado HTTP `Range`) si se corta.
  */
-class LocalModelStore(context: Context) {
+class LocalModelStore(context: Context, val model: LocalModel) {
 
     private val dir = File(context.applicationContext.filesDir, "models")
-    val file = File(dir, LocalModel.FILE_NAME)
-    private val partial = File(dir, LocalModel.FILE_NAME + ".part")
+    val file = File(dir, model.fileName)
+    private val partial = File(dir, model.fileName + ".part")
 
-    val isDownloaded: Boolean get() = file.length() == LocalModel.SIZE_BYTES
+    val isDownloaded: Boolean get() = file.length() == model.sizeBytes
 
     /** Bytes ya descargados (completos o parciales), para mostrar el progreso al reanudar. */
-    val downloadedBytes: Long get() = if (isDownloaded) LocalModel.SIZE_BYTES else partial.length()
+    val downloadedBytes: Long get() = if (isDownloaded) model.sizeBytes else partial.length()
 
     fun delete() {
         file.delete()
@@ -60,7 +103,7 @@ class LocalModelStore(context: Context) {
     suspend fun download(onProgress: (Long, Long) -> Unit) = withContext(Dispatchers.IO) {
         if (isDownloaded) return@withContext
         dir.mkdirs()
-        val total = LocalModel.SIZE_BYTES
+        val total = model.sizeBytes
         var start = partial.length().takeIf { it < total } ?: 0L
         if (dir.usableSpace < total - start + FREE_SPACE_MARGIN) {
             throw IOException(
@@ -68,7 +111,7 @@ class LocalModelStore(context: Context) {
             )
         }
 
-        val connection = (URL(LocalModel.URL).openConnection() as HttpURLConnection).apply {
+        val connection = (URL(model.url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
             readTimeout = 30_000
             if (start > 0) setRequestProperty("Range", "bytes=$start-")

@@ -32,25 +32,30 @@ import java.util.concurrent.Executors
  *   como `initialMessages`, así funcionan igual "Reintentar", "Borrar" y el cambio de personalidad.
  * - Todo el trabajo con el motor pasa por un único hilo, como recomienda la documentación.
  */
-class LocalLlmClient(context: Context, private val modelFile: File) : AutoCloseable {
+class LocalLlmClient(context: Context) : AutoCloseable {
 
     private val cacheDir = context.applicationContext.cacheDir.path
     private val executor = Executors.newSingleThreadExecutor { Thread(it, "litertlm") }
     private val dispatcher = executor.asCoroutineDispatcher()
     private var engine: Engine? = null
 
-    /** true cuando el modelo ya está cargado en memoria (la primera carga tarda unos segundos). */
+    /** Modelo cargado en memoria (la carga tarda unos segundos), o null si no hay ninguno. */
     @Volatile
-    var isLoaded = false
+    var loadedModel: LocalModel? = null
         private set
 
-    /** Genera la respuesta al último mensaje de [history], emitiendo el texto por fragmentos. */
+    /**
+     * Genera con [model] (guardado en [modelFile]) la respuesta al último mensaje de [history],
+     * emitiendo el texto por fragmentos. Si había otro modelo cargado, se libera primero.
+     */
     fun streamReply(
+        model: LocalModel,
+        modelFile: File,
         systemPrompt: String,
         history: List<ChatMessage>,
         temperature: Float
     ): Flow<String> = channelFlow {
-        val engine = loadEngine()
+        val engine = loadEngine(model, modelFile)
         val prompt = history.last()
         val previous = fitInContext(history.dropLast(1), budget = HISTORY_CHAR_BUDGET - prompt.text.length)
 
@@ -110,7 +115,7 @@ class LocalLlmClient(context: Context, private val modelFile: File) : AutoClosea
         executor.execute {
             runCatching { engine?.close() }
             engine = null
-            isLoaded = false
+            loadedModel = null
             backendName = null
         }
     }
@@ -119,7 +124,7 @@ class LocalLlmClient(context: Context, private val modelFile: File) : AutoClosea
     suspend fun unload() = withContext(dispatcher) {
         runCatching { engine?.close() }
         engine = null
-        isLoaded = false
+        loadedModel = null
         backendName = null
     }
 
@@ -128,26 +133,31 @@ class LocalLlmClient(context: Context, private val modelFile: File) : AutoClosea
     var backendName: String? = null
         private set
 
-    private fun loadEngine(): Engine {
-        engine?.let { return it }
+    private fun loadEngine(model: LocalModel, modelFile: File): Engine {
+        engine?.let { if (loadedModel == model) return it }
+        // Otro modelo en memoria: se libera antes de cargar el nuevo (no caben dos a la vez).
+        runCatching { engine?.close() }
+        engine = null
+        loadedModel = null
+        backendName = null
         check(modelFile.exists()) { "El modelo no está descargado. Descárgalo en Ajustes." }
         // La GPU es varias veces más rápida, pero depende de OpenCL, que no todos los equipos (ni el
         // emulador) exponen a las apps. Si no se puede, se usa la CPU.
-        val gpu = runCatching { createEngine(Backend.GPU()) }.getOrNull()
-        val newEngine = gpu ?: createEngine(Backend.CPU(threadCount = cpuThreads()))
+        val gpu = runCatching { createEngine(modelFile, model.contextTokens, Backend.GPU()) }.getOrNull()
+        val newEngine = gpu ?: createEngine(modelFile, model.contextTokens, Backend.CPU(threadCount = cpuThreads()))
         backendName = if (gpu != null) "GPU" else "CPU"
         engine = newEngine
-        isLoaded = true
+        loadedModel = model
         return newEngine
     }
 
     /** Crea e inicializa el motor (puede tardar varios segundos); si falla, lo libera y relanza. */
-    private fun createEngine(backend: Backend): Engine {
+    private fun createEngine(modelFile: File, contextTokens: Int, backend: Backend): Engine {
         val newEngine = Engine(
             EngineConfig(
                 modelPath = modelFile.absolutePath,
                 backend = backend,
-                maxNumTokens = LocalModel.CONTEXT_TOKENS,
+                maxNumTokens = contextTokens,
                 cacheDir = cacheDir
             )
         )
