@@ -61,8 +61,15 @@ class MessageAdapter(
                 b.text.setTextColor(ContextCompat.getColor(context, R.color.error))
                 b.bubble.setCardBackgroundColor(ContextCompat.getColor(context, R.color.error_container))
             } else {
-                val codeBg = ContextCompat.getColor(context, R.color.code_background)
-                val rendered = Markdown.render(message.text, codeBg)
+                val textColor = ContextCompat.getColor(context, R.color.on_surface)
+                val style = Markdown.Style(
+                    context = context,
+                    codeBackground = ContextCompat.getColor(context, R.color.code_background),
+                    textColor = textColor,
+                    textSize = b.text.textSize,
+                    maxWidth = maxBubbleTextWidth(context)
+                )
+                val rendered = Markdown.render(message.text, style)
                 // Mientras se genera se muestra un cursor al final del texto.
                 b.text.text = if (message.isStreaming) android.text.TextUtils.concat(rendered, " ▍") else rendered
                 b.text.setTextColor(ContextCompat.getColor(context, R.color.on_surface))
@@ -92,5 +99,14 @@ class MessageAdapter(
     companion object {
         private const val TYPE_USER = 0
         private const val TYPE_MODEL = 1
+
+        /**
+         * Ancho máximo del texto dentro de una burbuja del bot: pantalla menos márgenes, avatar y
+         * relleno de la burbuja (ver item_message_model.xml). Las fórmulas más anchas se reducen.
+         */
+        private fun maxBubbleTextWidth(context: android.content.Context): Int {
+            val metrics = context.resources.displayMetrics
+            return metrics.widthPixels - (124 * metrics.density).toInt()
+        }
     }
 }
