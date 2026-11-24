@@ -13,6 +13,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Reto11">
 
+        <!-- Librerías del sistema para ejecutar el modelo local en la GPU (OpenCL). Son opcionales:
+             si el celular no las tiene, la app usa la CPU. -->
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
+
         <activity
             android:name=".ui.ChatActivity"
             android:exported="true"

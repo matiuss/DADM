@@ -53,6 +53,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val client = GeminiClient()
     val modelStore = LocalModelStore(application)
     private val localClient = LocalLlmClient(application, modelStore.file)
+
+    /** "GPU" o "CPU" según dónde corre el modelo local; null si aún no se ha cargado. */
+    val localBackend: String? get() = localClient.backendName
     private var downloadJob: Job? = null
 
     private val _download = MutableStateFlow<DownloadState>(DownloadState.Idle(modelStore.downloadedBytes))
